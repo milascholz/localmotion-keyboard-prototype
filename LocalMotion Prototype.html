@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LocalMotion Keyboard · Prototype</title>
+<style>
+  :root{
+    --navy:#1E2A44; --teal:#1F9E89; --orange:#F2A33A; --red:#C8443A;
+    --bubble-in:#E9E9EB; --bubble-out:#2F7CF6; --kb:#D1D4DB; --key:#FFFFFF; --key-dark:#AEB3BE;
+    --ghost:#B7BCC6; --amber:#E9A23B; --muted:#5b6772; --mint:#E8F5F3; --line:#e5e9ee; --blue:#3B6EA5; --ink:#1d2733;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;gap:48px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;background:#EEF3F8;color:var(--navy)}
+  .side{max-width:280px}
+  .side h1{font-size:22px;margin:0 0 4px}
+  .side .tag{color:var(--teal);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+  .side ol{padding-left:18px;font-size:14px;line-height:1.5;color:#4a566e}
+  .side button{margin-top:8px;border:0;background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;cursor:pointer}
+  .side .note{font-size:12px;color:#7a8499;margin-top:12px}
+
+  /*phone*/
+  .phone{width:390px;height:844px;background:#000;border-radius:54px;padding:12px;box-shadow:0 30px 60px rgba(30,42,68,.25)}
+  .screen{width:100%;height:100%;background:#fff;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .status{height:48px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 6px;font-size:15px;font-weight:600}
+  .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#000;border-radius:20px}
+  .header{display:flex;flex-direction:column;align-items:center;padding:4px 0 10px;border-bottom:1px solid #eee}
+  .avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#F7C59F,#E88D67);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
+  .header .name{font-size:12px;margin-top:4px;color:#333}
+
+  .chat{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+  .time{align-self:center;font-size:11px;color:#8e8e93;margin:6px 0}
+  .msg{max-width:75%;padding:8px 13px;border-radius:19px;font-size:16px;line-height:1.3;animation:pop .25s ease}
+  .in{align-self:flex-start;background:var(--bubble-in);color:#000}
+  .out{align-self:flex-end;background:var(--bubble-out);color:#fff}
+  .typing{display:flex;gap:4px;padding:12px 14px}
+  .typing span{width:7px;height:7px;border-radius:50%;background:#999;animation:blink 1s infinite}
+  .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+  @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+
+  /*input*/
+  .inputbar{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px}
+  .field{flex:1;min-height:36px;border:1px solid #d5d5d9;border-radius:18px;padding:7px 14px;font-size:16px;line-height:1.3;display:flex;align-items:center;flex-wrap:wrap}
+  .typed{white-space:pre}
+  .ghost{color:var(--ghost);white-space:pre}
+  .caret{display:inline-block;width:2px;height:20px;background:var(--bubble-out);margin:0 1px;animation:caret 1s steps(1) infinite;vertical-align:middle}
+  @keyframes caret{50%{opacity:0}}
+  .field.shake{animation:shake .3s}
+  @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .send{width:32px;height:32px;border-radius:50%;border:0;background:#c7c7cc;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:default;transition:background .2s}
+  .send.ready{background:var(--bubble-out);cursor:pointer}
+
+  /*keyboard*/
+  .kb{background:var(--kb);padding:6px 4px 0;position:relative}
+  .panel{display:none;background:#fff;border-radius:14px;margin:0 2px 6px;padding:10px 10px 12px;animation:pop .25s ease}
+  .panel.show{display:block}
+  .kb.open{padding-top:8px}
+  .panel .ptop{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .panel .close{border:0;background:none;font-size:20px;color:#8e8e93;cursor:pointer;padding:2px 10px}
+  .panel .refresh{border:0;background:none;font-size:13px;color:var(--teal);cursor:pointer;padding:4px 10px 4px 4px;font-weight:700;display:flex;align-items:center;gap:5px}
+  .panel .refresh .ric{display:inline-block;font-size:16px;transition:transform .3s}
+  .panel .refresh.spin .ric{transform:rotate(180deg)}
+  .dictwave{display:none;align-items:center;gap:8px;margin-bottom:10px;color:var(--navy);font-size:13px;font-weight:700}
+  .dictwave .vwave{height:22px}
+  .dictwave .vwave .br{height:22px}
+  .kb.dictate .keys,.kb.dictate .kbfoot,.kb.dictate .refresh,.kb.dictate .sayit{display:none}
+  .kb.dictate{padding-top:8px}
+  .kb.dictate .dictwave{display:flex}
+  .kb.dictate .ptiles{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kb.dictate .ptile{font-size:60px}
+  .ptiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .ptile{aspect-ratio:1;border-radius:12px;border:3px solid transparent;display:flex;align-items:center;justify-content:center;font-size:38px;cursor:pointer;position:relative;transition:transform .1s}
+  .ptile:active{transform:scale(.94)}
+  .ptile.speaking{border-color:var(--orange)}
+  .ptile .spk{position:absolute;right:4px;bottom:3px;font-size:12px;opacity:.6}
+  .row2{display:none;align-items:center;justify-content:space-between;margin-top:10px;gap:8px}
+  .row2.show{display:flex}
+  .letterhint{background:#FFF4E2;color:#B5741A;border-radius:10px;padding:8px 14px;font-weight:800;font-size:18px;letter-spacing:.25em}
+  .sayit{flex:1;height:40px;border:0;background:var(--teal);color:#fff;border-radius:10px;padding:0 10px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box}
+  .wave{display:flex;align-items:center;gap:3px;height:22px}
+  .wave i{display:block;width:4px;height:4px;border-radius:2px;background:#fff;transition:height .06s linear}
+  .bubbtn{display:inline-block;margin-top:2px;border:0;background:#fff;color:var(--bubble-out);font-weight:700;font-size:15px;border-radius:14px;padding:7px 14px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  @keyframes pulse{50%{opacity:.75}}
+  .heard{font-size:12px;color:#5B6B82;text-align:center;margin-top:6px;min-height:15px}
+
+  .keys .krow{display:flex;justify-content:center;gap:5px;margin-bottom:11px}
+  .key{height:42px;min-width:31px;flex:0 0 31px;background:var(--key);border-radius:6px;box-shadow:0 1px 0 #898a8d;display:flex;align-items:center;justify-content:center;font-size:22px;user-select:none;cursor:pointer;transition:background .08s}
+  .key:active,.key.pressed{background:#c5c8ce;transform:translateY(1px)}
+  .key.dark{background:var(--key-dark);font-size:15px;flex:0 0 44px}
+  .key.space{flex:0 0 160px;font-size:15px}
+  .key.ret{flex:0 0 76px;font-size:15px}
+  .key.bad{background:#F6D5D2}
+  .key.locked{opacity:.55}
+  .key.mic{flex:0 0 44px}
+  .ptile{padding:0;overflow:hidden;background:#eef1f4}
+  .ptile svg{width:100%;height:100%;display:block}
+  .ptile .spk{background:rgba(255,255,255,.85);border-radius:8px;padding:0 3px;opacity:1}
+  #screen{position:relative}
+  .view{display:none;flex:1;flex-direction:column;min-height:0}
+  .view.on{display:flex}
+  /*home screen*/
+  .homescr{flex:1;background:linear-gradient(160deg,#3B6EA5,#2A9D8F);display:flex;flex-direction:column;align-items:center;padding-top:40px;gap:26px;color:#fff}
+  .hclock{font-size:70px;font-weight:300;line-height:1}
+  .hdate{font-size:16px;font-weight:600;margin-top:-18px;opacity:.9}
+  .apps{display:flex;gap:34px;margin-top:20px}
+  .appicon{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:600;border:none;background:none;color:#fff;position:relative;font-family:inherit}
+  .appicon div{width:62px;height:62px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+  .badge{position:absolute;top:-6px;right:-6px;background:#FF3B30;color:#fff;border-radius:10px;font-size:11px;padding:2px 6px;font-weight:700}
+  .lmicon{background:#fff;color:var(--teal);font-weight:900;font-size:22px!important;letter-spacing:-.5px}
+  /*iphone bottom*/
+  .homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#111;z-index:40;cursor:pointer}
+  #screen.onhome .homebar{background:rgba(255,255,255,.9)}
+  .kbfoot{display:flex;justify-content:space-between;align-items:center;padding:0 20px;height:62px;padding-bottom:18px}
+  .kbfoot button{background:none;border:none;cursor:pointer;padding:4px;line-height:1}
+  .lmkey{width:30px;height:30px;border-radius:8px;background:var(--teal)!important;color:#fff;font-weight:900;font-size:12px;letter-spacing:-.3px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .mickey{font-size:24px;color:#3d434b}
+  .tabs .tab{padding-bottom:26px}
+  /*side panel caption*/
+  #caption{margin-top:14px;background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 4px 14px rgba(31,58,95,.1)}
+  #caption b{display:block;color:var(--navy);font-size:16px;margin-bottom:3px}
+  #caption span{font-size:13.5px;color:#33404d;line-height:1.4}
+  .credits{font-size:11px;color:#7a8499;margin-top:10px}
+  .credits summary{cursor:pointer}
+  .credits a{color:#7a8499}
+  #screen.lg .msg,#screen.lg .field{font-size:19px}
+  @keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes sh{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  @keyframes bl{50%{opacity:0}}
+  /*from the team's LocalMotion app*/
+.toast{position:absolute;left:50%;top:86px;transform:translateX(-50%);background:var(--teal);color:#fff;font-weight:800;padding:8px 16px;border-radius:20px;font-size:13.5px;display:none;z-index:20;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast.show{display:block;animation:up .25s}
+@keyframes up{from{transform:translate(-50%,10px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+/* app */
+.apphead{padding:8px 16px 6px;flex:none}
+.apphead h2{font-size:22px;color:var(--navy);font-weight:800}
+.apphead p{font-size:12.5px;color:var(--muted);margin-top:2px}
+.appbody{flex:1;overflow:auto;padding:6px 14px 10px}
+.tabs{display:flex;border-top:1px solid var(--line);background:#fff;flex:none}
+.tab{flex:1;padding:7px 0 12px;border:none;background:none;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tab i{font-style:normal;font-size:18px}
+.tab.on{color:var(--teal)}
+.tab.hide{display:none}
+.chips{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
+.chip{border:1.5px solid #c9d1da;background:#fff;border-radius:14px;padding:4px 11px;font-size:13px;font-weight:700;cursor:pointer}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:#fff;border-radius:10px;padding:5px;text-align:center;font-size:12px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1);cursor:pointer;border:2px solid transparent;position:relative}
+.tile svg{width:100%;height:auto;display:block;border-radius:6px;margin-bottom:3px}
+.tile.add{display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--teal);font-size:12px;border:2px dashed #9fd3cb;box-shadow:none;min-height:96px}
+.tile.add b{font-size:26px}
+.tile.pick.sel{border-color:var(--teal)}
+.tile.pick.sel::after{content:"✓";position:absolute;top:4px;right:4px;background:var(--teal);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:14px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.1);margin-bottom:10px}
+.card h3{font-size:15px;color:var(--navy);margin-bottom:6px}
+.muted{font-size:12px;color:var(--muted);line-height:1.4}
+.center{text-align:center}
+.opts{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.opt{border:1.5px solid var(--teal);background:#fff;color:var(--teal);font-weight:800;border-radius:16px;padding:7px 14px;font-size:14px;cursor:pointer}
+.opt.right{background:var(--teal);color:#fff}
+.opt.wrong{border-color:var(--red);color:var(--red);opacity:.6}
+.btn{border:none;border-radius:14px;padding:11px 14px;background:var(--teal);color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
+.btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal)}
+.btn.navy{background:var(--navy)}
+.btn:disabled{opacity:.45;cursor:default}
+.pw{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f4}
+.pw svg{width:42px;height:42px;border-radius:8px;flex:none}
+.pw .w{font-size:17px;font-weight:800;flex:1}
+.pw .st{font-size:11px;font-weight:800;color:#fff;background:#9aa5b1;border-radius:10px;padding:3px 8px}
+.pw .st.done{background:var(--teal)}
+.slots{display:flex;gap:5px;justify-content:center;margin:10px 0}
+.slot{width:30px;height:38px;border-bottom:3px solid var(--navy);font-size:22px;font-weight:800;text-align:center;line-height:36px;color:var(--navy)}
+.slot.hint{color:var(--amber)}
+.tiles{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.lt{width:38px;height:38px;border-radius:8px;border:none;background:var(--navy);color:#fff;font-size:18px;font-weight:800;cursor:pointer}
+.lt.used{opacity:.2;cursor:default}
+.lt.shake{animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.stat{background:var(--mint);border-radius:12px;padding:8px 4px;text-align:center}
+.stat b{display:block;font-size:22px;color:var(--teal)}
+.stat span{font-size:10.5px;color:var(--muted);font-weight:700}
+.bars{display:flex;align-items:flex-end;gap:10px;height:90px;padding:6px 4px 0}
+.bar{flex:1;background:var(--amber);border-radius:6px 6px 0 0;position:relative;transition:height .5s}
+.bar span{position:absolute;bottom:-17px;left:-6px;right:-6px;text-align:center;font-size:10px;color:var(--muted)}
+.bar em{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:10px;font-style:normal;font-weight:800;color:var(--navy)}
+.bar.lo{background:var(--teal)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #eef1f4;font-size:14px}
+.row small{display:block;color:var(--muted);font-size:11.5px}
+.sw{width:44px;height:26px;border-radius:13px;background:#c9d1da;position:relative;cursor:pointer;flex:none;border:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--teal)}.sw.on::after{left:21px}
+.seg{display:flex;gap:4px;margin-top:6px}
+.seg button{flex:1;border:1.5px solid #c9d1da;background:#fff;border-radius:10px;padding:6px 2px;font-size:11.5px;font-weight:700;cursor:pointer}
+.seg button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.lockline{display:flex;gap:8px;align-items:center;background:var(--mint);border-radius:12px;padding:10px;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px}
+.ms{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-bottom:1px solid #eef1f4}
+.modal{position:absolute;inset:0;background:rgba(20,30,45,.45);display:none;align-items:flex-end;z-index:15}
+.modal.show{display:flex}
+.sheet{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:16px;animation:rise .25s;max-height:85%;overflow:auto}
+.sheet h3{color:var(--navy);font-size:17px;margin-bottom:8px}
+.sheet input{width:100%;font-size:17px;padding:9px 12px;border:1.5px solid #c9d1da;border-radius:12px;margin-top:8px;font-family:inherit}
+.onb{flex:1;display:flex;flex-direction:column;padding:16px;overflow:auto}
+.onb h2{font-size:22px;color:var(--navy);margin:6px 0}
+.dots{display:flex;gap:6px;justify-content:center;margin-bottom:6px}
+.dots i{width:8px;height:8px;border-radius:50%;background:#c9d1da}
+.dots i.on{background:var(--teal)}
+.choice{border:2px solid #d5dde5;border-radius:14px;padding:10px 12px;margin-top:8px;cursor:pointer;background:#fff;text-align:left;width:100%}
+.choice b{display:block;color:var(--navy);font-size:14.5px}
+.choice span{font-size:12px;color:var(--muted)}
+.choice.on{border-color:var(--teal);background:var(--mint)}
+  .switcher{display:flex;gap:22px;margin-top:22px}
+  .sw-app{display:flex!important;flex-direction:column;align-items:center;gap:7px;background:none!important;color:var(--navy)!important;padding:0!important;margin:0!important;font-size:13px!important;font-weight:600;cursor:pointer;opacity:.6;border:0}
+  .sw-app.on{opacity:1}
+  .sw-ic{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 4px 12px rgba(30,42,68,.18)}
+  .sw-app.on .sw-ic{outline:3px solid var(--teal);outline-offset:3px}
+  /*listening: bracketed sound wave like a voice-memo visualizer, same aqua button, same size*/
+  .vwave{display:flex;align-items:center;gap:5px;height:34px}
+  .vwave .br{width:7px;height:34px;border:3px solid var(--navy);box-sizing:border-box}
+  .vwave .br.l{border-right:0}
+  .vwave .br.r{border-left:0}
+  .vwave i{display:block;width:5px;height:6px;border-radius:3px;background:var(--navy);transition:height .07s linear}
+  .sayit .vwave .br{border-color:#fff}
+  .sayit .vwave i{background:#fff}
+</style>
+</head>
+<body>
+
+<div class="side">
+  <h1>Keyboard prototype</h1>
+  <ol>
+    <li>Type the grey text.</li>
+    <li>On the last word you only get the first letter. Use the chat to guess it.</li>
+    <li>When you get stuck, your pictures appear automatically.</li>
+    <li>Tap a picture to hear it.</li>
+    <li>Say the word or type it, then send.</li>
+  </ol>
+  <button id="reset">Restart with a new chat</button>
+  <div class="switcher">
+    <button class="sw-app on" id="sw-msg" onclick="go('msg')"><span class="sw-ic" style="background:linear-gradient(#5BF675,#0CBD2A)"><svg width="30" height="30" viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.6 6.2-.2 1.3-.9 2.6-1.9 3.5 2 0 3.8-.7 5.1-1.8 1 .2 2.1.3 3.2.3 5.5 0 10-3.6 10-8.2S17.5 3 12 3z"/></svg></span>iMessage</button>
+    <button class="sw-app" id="sw-app" onclick="go('app')"><span class="sw-ic" style="background:#fff">🖼️</span>LocalMotion app</button>
+  </div>
+</div>
+
+<div class="phone"><div class="screen" id="screen">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><span>5G ▮</span></div>
+  <div class="homebar"></div>
+  <div class="toast" id="toast"></div>
+  <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+  <div class="view on" id="v-home"><div class="homescr">
+    <div class="hclock">9:41</div><div class="hdate">Sunday, November 15</div>
+    <div class="apps">
+      <button class="appicon" onclick="go('msg')"><div style="background:linear-gradient(#5BF675,#0CBD2A)"><svg width="38" height="38" viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.6 6.2-.2 1.3-.9 2.6-1.9 3.5 2 0 3.8-.7 5.1-1.8 1 .2 2.1.3 3.2.3 5.5 0 10-3.6 10-8.2S17.5 3 12 3z"/></svg></div>Messages<span class="badge" id="msgbadge">1</span></button>
+      <button class="appicon" onclick="go('app')"><div class="lmicon">LM</div>LocalMotion</button>
+    </div>
+  </div></div>
+
+  <div class="view" id="v-msg">
+  <div class="header"><div class="avatar" id="avatar">E</div><div class="name" id="cname">Emma ›</div></div>
+
+  <div class="chat" id="chat"></div>
+
+  <div class="inputbar">
+    <div class="field" id="field"><span class="typed" id="typed"></span><span class="caret"></span><span class="ghost" id="ghost"></span></div>
+    <button class="send" id="send" aria-label="send">↑</button>
+  </div>
+
+  <div class="kb" id="kb">
+    <div class="panel" id="panel">
+      <div class="ptop"><button class="refresh" id="refreshTiles" title="Show different photos"><span class="ric">↻</span>Refresh</button><button class="close" id="closePanel" aria-label="Close">×</button></div>
+      <div class="dictwave" id="dictwave"><span class="vwave"><span class="br l"></span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="br r"></span></span><span id="dictstatus">Listening…</span></div>
+      <div class="ptiles" id="tiles"></div>
+      <div class="row2" id="row2">
+        <div class="letterhint" id="letterhint"></div>
+        <button class="sayit" id="sayit"><svg width="16" height="18" viewBox="0 0 20 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="6" y="1.5" width="8" height="13" rx="4"/><path d="M2.5 11a7.5 7.5 0 0 0 15 0M10 18.5V22"/></svg> Say it</button>
+      </div>
+      <div class="heard" id="heard"></div>
+    </div>
+
+    <div class="keys" id="keys"></div>
+  </div>
+  </div>
+
+  <div class="view" id="v-onb"><div class="onb" id="onb"></div></div>
+
+  <div class="view" id="v-app">
+    <div class="apphead"><h2 id="apptitle">Photos</h2><p id="appsub"></p></div>
+    <div class="appbody" id="appbody"></div>
+    <div class="tabs">
+      <button class="tab on" data-t="photos" onclick="tab('photos')"><i><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg></i>Photos</button>
+      <button class="tab" data-t="practice" onclick="tab('practice')"><i><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></i>Practice</button>
+      <button class="tab" data-t="progress" onclick="tab('progress')"><i><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></i>Progress</button>
+      <button class="tab hide" data-t="slp" onclick="tab('slp')"><i><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></i>SLP view</button>
+      <button class="tab" data-t="settings" onclick="tab('settings')"><i><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></i>Settings</button>
+    </div>
+  </div>
+</div></div>
+
+<script>
+//conversations: restart moves to the next one
+const SCENARIOS = [
+  {name:"Sarah", color:"#B784A7", time:"Today 7:31 PM",
+   msgs:["Dad!! Liam's team had the final tonight 🏒", "He scored the last goal 😭", "How was the game??"],
+   target:"We won", stuck:"won", accept:["won","one","1","wan","wun","want"],
+   tiles:[["kid","Liam"],["rink","rink"],["trophy","won",1],["puck","puck"]],
+   replies:["WAIT you WON?! 🏆🎉", "Call you Sunday? I want to hear everything"]},
+  {name:"Sarah", color:"#B784A7", time:"Today 4:12 PM",
+   msgs:["Are you coming for dinner Sunday?", "I can pick you up if you want"],
+   target:"Taking my truck", stuck:"truck", accept:["truck","trucks","track","struck"],
+   tiles:[["house","home"],["truck","truck",1],["pizza","pizza"],["coffee","coffee"]],
+   replies:["Ok perfect 😊", "Drive safe, see you at 5!"]},
+  {name:"Mike", color:"#5B8DEF", time:"Today 9:05 AM",
+   msgs:["Morning Frank!", "Heading up north Saturday 🛶", "Want to come out on the water?"],
+   target:"Yes the lake", stuck:"lake", accept:["lake","lakes","like","late","make"],
+   tiles:[["fish","fish"],["lake","lake",1],["truck","truck"],["coffee","coffee"]],
+   replies:["Perfect 👍", "I'll pick you up at 7"]},
+  {name:"Sarah", color:"#B784A7", time:"Today 6:48 PM",
+   msgs:["Liam keeps asking about the dog 😂", "How is he doing?"],
+   target:"I walked Buddy", stuck:"Buddy", accept:["buddy","body","birdie","buddie"],
+   tiles:[["lake","lake"],["dog","Buddy",1],["kid","Liam"],["house","home"]],
+   replies:["Aww give him a hug from us 🐶", "Liam says hi!"]},
+  {name:"Mike", color:"#5B8DEF", time:"Today 8:02 AM",
+   msgs:["You up?", "Want to grab breakfast at the diner?"],
+   target:"Need a coffee", stuck:"coffee", accept:["coffee","coffey","toffee","copy"],
+   tiles:[["pizza","pizza"],["coffee","coffee",1],["truck","truck"],["fish","fish"]],
+   replies:["Haha same ☕", "See you in 20"]},
+];
+let scene = -1, S, TARGET, STUCK_WORD, STUCK_AT, ACCEPT, TILES, run = 0;
+
+function loadScene(i){
+  S = SCENARIOS[i];
+  TARGET = S.target;
+  STUCK_WORD = S.stuck;
+  STUCK_AT = TARGET.lastIndexOf(STUCK_WORD) + 1; //first letter is free, the rest is locked
+  ACCEPT = S.accept; //what the mic accepts for the stuck word
+  TILES = S.tiles.map(([key, say, target]) => ({key, say, target:!!target}));
+  $("avatar").textContent = S.name[0];
+  $("avatar").style.background = S.color;
+  $("cname").textContent = S.name + " ›";
+}
+
+//state
+let pos, phase, stuckTimer;
+let dictating = false, dictTimer = null, stopDictWave = null;
+function hintText(w){ return w[0].toUpperCase() + "_".repeat(w.length - 2) + w.slice(-1).toUpperCase(); }
+
+const $ = id => document.getElementById(id);
+const chat = $("chat");
+
+function addMsg(m){
+  const d = document.createElement("div");
+  if(m.t === "time"){ d.className = "time"; }
+  else { d.className = "msg " + m.t; }
+  d.textContent = m.text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+  return d;
+}
+
+function render(){
+  $("kb").classList.toggle("open", $("panel").classList.contains("show"));
+  $("typed").textContent = TARGET.slice(0, pos);
+  //before the hint, the ghost stops at the first letter of the stuck word
+  const end = (phase === "unlocked" || phase === "done") ? TARGET.length : Math.max(pos, STUCK_AT);
+  $("ghost").textContent = TARGET.slice(pos, end);
+  $("send").classList.toggle("ready", phase === "done");
+  const locked = phase === "stuck" || phase === "hint";
+  document.querySelectorAll(".key.letter").forEach(k => k.classList.toggle("locked", locked));
+}
+
+function skipPunct(){
+  //auto-fill punctuation the keyboard doesn't show
+  while(pos < TARGET.length && /[^a-zA-Z ]/.test(TARGET[pos])) pos++;
+}
+
+function press(ch){
+  if(phase === "sent") return;
+  if(phase === "stuck" || phase === "hint"){ nope(); return; }
+  if(pos >= TARGET.length) return;
+  const want = TARGET[pos];
+  if(ch.toLowerCase() === want.toLowerCase()){
+    pos++;
+    skipPunct();
+    if(pos === STUCK_AT && phase === "typing"){
+      phase = "stuck";
+      stuckTimer = setTimeout(openPanel, 1200); //pictures appear on their own, no button to tap
+    }
+    if(pos >= TARGET.length) finishWord();
+    render();
+    return true;
+  }
+  nope();
+  return false;
+}
+
+function nope(){
+  const f = $("field");
+  f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
+}
+
+function speak(text){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.8;
+  speechSynthesis.speak(u);
+}
+
+function openPanel(){
+  if(phase === "sent") return;
+  clearTimeout(stuckTimer);
+  $("panel").classList.add("show");
+  if(phase === "stuck") phase = "hint";
+  if(phase === "typing") $("heard").textContent = "Pictures from the chat. Tap one to hear it.";
+  cap("Pictures from his own photos", "Tap a picture to hear its word. They match the conversation, not a generic word list.");
+  render();
+}
+
+function tapTile(t, el){
+  document.querySelectorAll(".ptile").forEach(x => x.classList.remove("speaking"));
+  el.classList.add("speaking");
+  speak(t.say);
+  if(dictating){
+    if(t.target) dictFill(); //tapping the picture fills the gap right away, no need to wait for the fake mic
+    return;
+  }
+  if(t.target && (phase === "stuck" || phase === "hint")){
+    cap("A cue, not the answer", "He hears the word and sees its shape. Now he says it out loud, or types the rest himself.");
+    $("row2").classList.add("show");
+    $("letterhint").textContent = hintText(STUCK_WORD);
+    phase = "unlocked";
+    render();
+  }
+}
+
+function finishWord(){
+  pos = TARGET.length;
+  phase = "done";
+  $("heard").textContent = "✓ Nice. You found it.";
+  //counts as practice in the LocalMotion app
+  const b = A.bank.find(x => x.w.toLowerCase() === STUCK_WORD.toLowerCase());
+  if(b){ b.found++; if(!A.reached.includes(b.w)) A.reached.push(b.w); }
+  A.foundToday.push(STUCK_WORD);
+  cap("He found the word himself", "That counts as practice: \"" + STUCK_WORD + "\" goes into tonight's review in the LocalMotion app. Tap send.");
+  render();
+}
+
+//dictation demo: tapping the mic hides the keyboard, fake-dictates the message, and pauses on
+//the gap word so the pictures can fill it in (by tap, or automatically after a short "listening" beat)
+function startDictation(){
+  if(phase === "sent" || phase === "done") return;
+  dictating = true;
+  clearTimeout(stuckTimer);
+  buildTiles();
+  $("kb").classList.add("dictate");
+  $("panel").classList.add("show");
+  $("dictstatus").textContent = "Listening…";
+  stopDictWave = startWave(document.querySelectorAll("#dictwave .vwave i"));
+  dictFakeType();
+}
+
+function dictFakeType(){
+  phase = "typing";
+  let i = pos;
+  const step = () => {
+    if(!dictating) return;
+    if(i < STUCK_AT){ pos = i + 1; i++; render(); dictTimer = setTimeout(step, 110); }
+    else { phase = "stuck"; render(); dictListen(); }
+  };
+  step();
+}
+
+//simulate Frank trying a couple of pictures before landing on the right one, like he's scanning for the word
+function dictListen(){
+  phase = "hint";
+  $("letterhint").textContent = hintText(STUCK_WORD);
+  $("row2").classList.add("show");
+  const tileEls = [...document.querySelectorAll("#tiles .ptile")];
+  const targetIx = TILES.findIndex(t => t.target);
+  const tryOrder = tileEls.map((_, i) => i).filter(i => i !== targetIx);
+  for(let i = tryOrder.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [tryOrder[i], tryOrder[j]] = [tryOrder[j], tryOrder[i]]; }
+  tryOrder.splice(2); //only try up to two pictures first
+  tryOrder.push(targetIx);
+  let step = 0;
+  const next = () => {
+    tileEls.forEach(el => el.classList.remove("speaking"));
+    const ix = tryOrder[step];
+    if(tileEls[ix]) tileEls[ix].classList.add("speaking");
+    if(ix === targetIx){
+      $("dictstatus").textContent = "Listening for “" + STUCK_WORD + "”…";
+      dictTimer = setTimeout(dictFill, 1500);
+    } else {
+      $("dictstatus").textContent = "Listening…";
+      step++;
+      dictTimer = setTimeout(next, 700);
+    }
+  };
+  next();
+}
+
+function dictFill(){
+  clearTimeout(dictTimer);
+  finishWord();
+  $("dictstatus").textContent = "✓ Heard “" + STUCK_WORD + "”";
+  dictTimer = setTimeout(endDictation, 900);
+}
+
+function endDictation(){
+  dictating = false;
+  clearTimeout(dictTimer);
+  if(stopDictWave){ stopDictWave(); stopDictWave = null; }
+  $("kb").classList.remove("dictate");
+  $("panel").classList.remove("show");
+  $("row2").classList.remove("show");
+  document.querySelectorAll(".ptile").forEach(x => x.classList.remove("speaking"));
+  render();
+}
+
+//waveform: a demo visualizer, no mic is ever read. it only animates once something starts it
+function startWave(bars){
+  const shape = [0.55,0.35,0.7,0.95,0.6,0.4,0.6,0.95,0.7,0.35,0.55];
+  let raf, alive = true;
+  const draw = () => {
+    if(!alive) return;
+    const now = performance.now();
+    const level = 0.6 + 0.35 * Math.sin(now / 180); //fake speech level, steady and demo-safe
+    bars.forEach((b, i) => {
+      const jitter = 0.75 + 0.25 * Math.sin(now / 90 + i * 1.7);
+      const h = 6 + 28 * shape[i % shape.length] * level * jitter;
+      b.style.height = Math.round(Math.min(34, h)) + "px";
+    });
+    raf = requestAnimationFrame(draw);
+  };
+  draw();
+  return () => { alive = false; cancelAnimationFrame(raf); };
+}
+
+//fully faked: no microphone or speech recognition is ever used, just a timed reveal
+function listen(){
+  if(phase !== "unlocked") return;
+  const btn = $("sayit");
+  btn.classList.add("listening");
+  btn.innerHTML = '<span class="vwave"><span class="br l"></span>' + '<i></i>'.repeat(11) + '<span class="br r"></span></span>';
+  const stopWave = startWave(btn.querySelectorAll(".vwave i"));
+  $("heard").textContent = "Listening…";
+  setTimeout(() => {
+    stopWave();
+    btn.classList.remove("listening");
+    btn.innerHTML = '<svg width="16" height="18" viewBox="0 0 20 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="6" y="1.5" width="8" height="13" rx="4"/><path d="M2.5 11a7.5 7.5 0 0 0 15 0M10 18.5V22"/></svg> Say it';
+    $("heard").textContent = "Heard: “" + STUCK_WORD + "”";
+    finishWord();
+  }, 1500);
+}
+
+function send(){
+  if(phase !== "done") return;
+  addMsg({t:"out", text:TARGET});
+  clearTimeout(stuckTimer);
+  A.replies++;
+  cap("Back in the conversation", "A real answer instead of a thumbs-up. Open the LocalMotion app to see tonight's practice, or restart for a new chat.");
+  phase = "sent";
+  pos = 0;
+  $("typed").textContent = ""; $("ghost").textContent = "";
+  $("panel").classList.remove("show");
+  $("kb").classList.remove("open");
+  $("send").classList.remove("ready");
+  const r = run;
+  setTimeout(() => {
+    if(r !== run) return;
+    const ty = document.createElement("div");
+    ty.className = "msg in typing"; ty.innerHTML = "<span></span><span></span><span></span>";
+    chat.appendChild(ty); chat.scrollTop = chat.scrollHeight;
+    setTimeout(() => {
+      ty.remove();
+      if(r !== run) return;
+      addMsg({t:"in", text:S.replies[0]});
+      setTimeout(() => { if(r === run) addMsg({t:"in", text:S.replies[1]}); }, 900);
+      setTimeout(() => {
+        if(r !== run) return;
+        const d = addMsg({t:"in", text:""});
+        d.innerHTML = '<button class="bubbtn">Restart demo ↻</button>';
+        d.querySelector("button").onclick = () => reset();
+        chat.scrollTop = chat.scrollHeight;
+      }, 1900);
+    }, 1400);
+  }, 600);
+}
+
+//build keyboard
+function buildKeys(){
+  const rows = ["qwertyuiop","asdfghjkl","zxcvbnm"];
+  const k = $("keys"); k.innerHTML = "";
+  rows.forEach((r, i) => {
+    const row = document.createElement("div"); row.className = "krow";
+    if(i === 2){ const s = document.createElement("div"); s.className = "key dark"; s.textContent = "⇧"; row.appendChild(s); }
+    [...r].forEach(c => {
+      const key = document.createElement("div");
+      key.className = "key letter"; key.textContent = c; key.dataset.k = c;
+      key.onclick = () => { if(press(c) === false){ key.classList.add("bad"); setTimeout(() => key.classList.remove("bad"), 180); } };
+      row.appendChild(key);
+    });
+    if(i === 2){ const b = document.createElement("div"); b.className = "key dark"; b.textContent = "⌫"; b.dataset.k = "back"; b.onclick = backspace; row.appendChild(b); }
+    k.appendChild(row);
+  });
+  const last = document.createElement("div"); last.className = "krow";
+  const n = document.createElement("div"); n.className = "key dark"; n.textContent = "123";
+  const mic = document.createElement("div"); mic.className = "key dark mic"; mic.textContent = "🖼️"; mic.title = "LocalMotion pictures"; mic.onclick = openPanel;
+  const sp = document.createElement("div"); sp.className = "key space"; sp.textContent = "space"; sp.dataset.k = "space"; sp.onclick = () => { if(press(" ") === false) flash(sp, true); };
+  const rt = document.createElement("div"); rt.className = "key dark ret"; rt.textContent = "return"; rt.dataset.k = "send"; rt.onclick = send;
+  last.append(n, mic, sp, rt);
+  k.appendChild(last);
+  const foot = document.createElement("div"); foot.className = "kbfoot";
+  foot.innerHTML = '<button title="Keyboards"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2b2f35" stroke-width="1.5"><circle cx="12" cy="12" r="9.5"/><ellipse cx="12" cy="12" rx="4.2" ry="9.5"/><path d="M2.5 12h19M4 7h16M4 17h16"/></svg></button><button title="Dictate"><svg width="26" height="30" viewBox="0 0 20 24" fill="none" stroke="#2b2f35" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="1.5" width="8" height="13" rx="4"/><path d="M2.5 11a7.5 7.5 0 0 0 15 0M10 18.5V22M6.5 22h7"/></svg></button>';
+  foot.children[0].onclick = () => {};
+  foot.children[1].onclick = startDictation;
+  k.appendChild(foot);
+}
+
+function buildTiles(){
+  const wrap = $("tiles"); wrap.innerHTML = "";
+  TILES.forEach(t => {
+    const el = document.createElement("div");
+    el.className = "ptile";
+    el.innerHTML = PIC[t.key];
+    el.onclick = () => tapTile(t, el);
+    wrap.appendChild(el);
+  });
+}
+
+function reset(stay){
+  clearTimeout(stuckTimer);
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+  run++;
+  scene = (scene + 1) % SCENARIOS.length;
+  loadScene(scene);
+  buildTiles();
+  pos = 0; phase = "typing";
+  chat.innerHTML = "";
+  addMsg({t:"time", text:S.time});
+  S.msgs.forEach(text => addMsg({t:"in", text}));
+  $("panel").classList.remove("show");
+  $("row2").classList.remove("show");
+  $("heard").textContent = "";
+  document.querySelectorAll(".ptile").forEach(x => x.classList.remove("speaking"));
+  render();
+  if(!stay) go("msg");
+}
+
+const PIC={
+kid:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#CFE3F5"/><circle cx="15" cy="12" r="6" fill="#E9B98F"/><path d="M5 30 C5 20 25 20 25 30Z" fill="#C0392B"/><path d="M9 9 Q15 2 21 9 Z" fill="#6b4a2b"/></svg>`,
+rink:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#E6F2FA"/><ellipse cx="15" cy="18" rx="12" ry="7" fill="#fff" stroke="#7FA9C9" stroke-width="1.5"/><line x1="15" y1="11" x2="15" y2="25" stroke="#C0392B" stroke-width="1.5"/><path d="M6 8 L14 16 L11 17" stroke="#333" stroke-width="2" fill="none"/></svg>`,
+trophy:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#FFF3D6"/><path d="M9 6 H21 V12 C21 17 9 17 9 12 Z" fill="#E9A23B"/><rect x="13.5" y="16" width="3" height="5" fill="#E9A23B"/><rect x="10" y="21" width="10" height="4" rx="1" fill="#B9781E"/><path d="M9 8 H6 C6 12 9 13 9 13 M21 8 H24 C24 12 21 13 21 13" stroke="#E9A23B" stroke-width="1.6" fill="none"/></svg>`,
+dog:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#EDE3D6"/><circle cx="15" cy="16" r="8" fill="#B07A45"/><ellipse cx="8" cy="12" rx="3" ry="6" fill="#7a5230"/><ellipse cx="22" cy="12" rx="3" ry="6" fill="#7a5230"/><circle cx="12" cy="15" r="1.3" fill="#222"/><circle cx="18" cy="15" r="1.3" fill="#222"/><circle cx="15" cy="19" r="1.6" fill="#222"/></svg>`,
+truck:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#E2EEE6"/><rect x="4" y="12" width="15" height="9" fill="#2E7D5B"/><path d="M19 14 H24 L27 18 V21 H19Z" fill="#2E7D5B"/><circle cx="9" cy="23" r="3" fill="#333"/><circle cx="22" cy="23" r="3" fill="#333"/></svg>`,
+coffee:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#F6E6E4"/><path d="M8 10 H22 L20 25 H10 Z" fill="#C0392B"/><rect x="7" y="8" width="16" height="3" rx="1" fill="#fff" stroke="#999" stroke-width=".6"/></svg>`,
+fish:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#DCEFF1"/><path d="M5 15 C10 8 19 8 23 15 C19 22 10 22 5 15Z" fill="#2A9D8F"/><path d="M23 15 L28 10 V20Z" fill="#2A9D8F"/><circle cx="10" cy="14" r="1.3" fill="#fff"/></svg>`,
+house:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#F1ECE0"/><path d="M5 15 L15 6 L25 15Z" fill="#8E5B3C"/><rect x="8" y="15" width="14" height="10" fill="#E9C46A"/><rect x="13" y="19" width="4" height="6" fill="#8E5B3C"/></svg>`,
+sarah:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#F3E1EC"/><circle cx="15" cy="13" r="6.5" fill="#F0C5A0"/><path d="M7 14 C6 4 24 4 23 14 C21 9 9 9 7 14Z" fill="#8b5a2b"/><path d="M5 30 C5 21 25 21 25 30Z" fill="#7B5EA7"/></svg>`,
+lake:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#DDEFF6"/><path d="M0 18 H30 V30 H0Z" fill="#5AA9C9"/><path d="M3 18 L10 9 L15 15 L20 8 L28 18Z" fill="#6FA97D"/></svg>`,
+puck:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#E6F2FA"/><ellipse cx="15" cy="18" rx="8" ry="4" fill="#222"/><rect x="7" y="13" width="16" height="5" fill="#222"/><ellipse cx="15" cy="13" rx="8" ry="4" fill="#444"/></svg>`,
+pizza:`<svg viewBox="0 0 30 30"><rect width="30" height="30" rx="4" fill="#FCEBD5"/><path d="M15 4 L26 25 H4Z" fill="#F4C26B"/><path d="M15 4 L26 25 H4Z" fill="none" stroke="#C98A2E" stroke-width="2"/><circle cx="14" cy="15" r="2" fill="#C0392B"/><circle cx="18" cy="20" r="2" fill="#C0392B"/><circle cx="11" cy="21" r="2" fill="#C0392B"/></svg>`,
+};
+const CATS=['People','Places','Things'];
+const BASE_BANK=[
+ {w:'won',pic:'trophy',cat:'Things',ctx:['game','score','hockey']},
+ {w:'Liam',pic:'kid',cat:'People',ctx:['liam','score','game','hockey']},
+ {w:'rink',pic:'rink',cat:'Places',ctx:['game','hockey']},
+ {w:'Buddy',pic:'dog',cat:'People',ctx:['buddy','doing']},
+ {w:'coffee',pic:'coffee',cat:'Things',ctx:['morning']},
+ {w:'truck',pic:'truck',cat:'Things',ctx:['pick','sunday','drive']},
+ {w:'lake',pic:'lake',cat:'Places',ctx:['weekend','sunday']},
+ {w:'Sarah',pic:'sarah',cat:'People',ctx:[]},
+ {w:'home',pic:'house',cat:'Places',ctx:['sunday','dinner','pick']},
+];
+const NEW_PHOTOS=[{w:'puck',pic:'puck',cat:'Things',ctx:['hockey','game','score']},
+ {w:'dock',pic:'dock',cat:'Places',ctx:['lake','weekend']},
+ {w:'pizza',pic:'pizza',cat:'Things',ctx:['dinner','sunday']},
+ {w:'fishing',pic:'fish',cat:'Things',ctx:['weekend','lake']}];
+const STARTER=[['kid','Liam','People'],['sarah','Sarah','People'],['dog','Buddy','People'],['rink','rink','Places'],['lake','lake','Places'],['house','home','Places'],['trophy','won','Things'],['truck','truck','Things'],['coffee','coffee','Things']];
+function fresh(){return{bank:BASE_BANK.map(b=>({...b,found:0})),typed:'',sarahIx:0,keyTimes:[],pauseMs:1600,bar:null,rejected:new Set(),target:null,reveal:1,hintsUsed:0,foundToday:[],reached:[],replies:0,setup:false,help:'letters',settings:{lg:false,audio:false,voicepics:true,taps:false,lite:false,share:false},practiceDone:false,newIx:0,done:new Set(),lastFoundIx:-1}}
+function cap(){}
+function toast(t,ms=1900){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),ms)}
+function done(k){if(A.done.has(k))return;A.done.add(k);renderTasks()}
+function renderTasks(){$('tasklist').innerHTML=TASKS.map(([k,t])=>`<div class="task ${A.done.has(k)?'done':''}"><i>${A.done.has(k)?'✓':''}</i>${t}</div>`).join('')}
+function say(t){try{if(!A.settings.audio&&!say.force){}const u=new SpeechSynthesisUtterance(t);u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function click(){if(!A.settings.taps)return;try{const a=click.ctx||(click.ctx=new AudioContext());const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;g.gain.value=.04;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+.03)}catch(e){}}
+// ---------- onboarding ----------
+let ob={step:0,sel:new Set(['kid','sarah','dog','rink','lake','house','trophy','truck','coffee'])};
+function onb(n){ob.step=n;const O=$('onb');const dots=`<div class="dots">${[0,1].map(i=>`<i class="${i==n?'on':''}"></i>`).join('')}</div>`;
+ if(n===0){O.innerHTML=dots+`<h2>Hi Frank 👋</h2><p class="muted" style="font-size:14px">Let's set up your picture keyboard. It takes about 5 minutes. Your SLP or a family member can help.</p>
+  <div class="card" style="margin-top:14px"><div class="lockline" style="margin:0">🔒 Everything stays on this phone. No account and no cloud.</div></div>
+  <div style="margin-top:auto"><button class="btn" id="ob0" onclick="onb(1)">Get started</button></div>`;
+  cap('First-time setup','The SLP can do this with Frank at discharge, or a family member can help remotely.')}
+ if(n===1){O.innerHTML=dots+`<h2>Pick your photos</h2><p class="muted">Tap to choose. These become your pictures. Add your own any time.</p>
+  <div class="grid" style="margin-top:10px">${STARTER.map(([k,l])=>`<div class="tile pick ${ob.sel.has(k)?'sel':''}" data-k="${k}" onclick="obToggle('${k}',this)">${PIC[k]}${l}</div>`).join('')}</div>
+  <div style="margin-top:auto"><button class="btn" id="ob1" onclick="finishSetup()">Finish setup · <span id="obn">${ob.sel.size}</span> photos</button></div>`;
+  cap('Built from his own life','A starter pack from the camera roll: people, places and things that matter to Frank. Generic clip-art is what makes other apps feel pointless.')}}
+function obToggle(k,el){ob.sel.has(k)?ob.sel.delete(k):ob.sel.add(k);el.classList.toggle('sel');$('obn').textContent=ob.sel.size}
+function finishSetup(){A.setup=true;done('setup');
+ const keep=STARTER.filter(([k])=>ob.sel.has(k));
+ A.bank=A.bank.filter(b=>keep.some(([k])=>k===b.pic));
+ keep.forEach(([k,l,c])=>{if(!A.bank.some(b=>b.pic===k))A.bank.push({w:l,pic:k,cat:c,ctx:[],found:0})});
+ toast('✓ Keyboard ready in every app');go('app')}
+// ---------- app ----------
+function tab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));A.game=null;const B=$('appbody');
+ if(t==='photos'){$('apptitle').textContent='Photos';$('appsub').textContent=`${A.bank.length} words from your life · sorted for you`;
+  B.innerHTML=`<div class="chips">${['All',...CATS].map((c,i)=>`<button class="chip ${i==0?'on':''}" id="chip-${c}" onclick="chip('${c}')">${c}</button>`).join('')}</div><div class="grid" id="pgrid"></div>`;chip('All');
+  cap('Photos, organized automatically','Tap a photo to rename it, or tap ＋ to add one. Every new photo becomes a word the keyboard can suggest.')}
+ if(t==='practice')practice();
+ if(t==='progress')progress();
+ if(t==='slp')slp();
+ if(t==='settings')settings()}
+function chip(c){document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.id==='chip-'+c));
+ const list=A.bank.filter(b=>c==='All'||b.cat===c);
+ $('pgrid').innerHTML=list.map(b=>`<div class="tile" onclick="editPhoto('${b.w}')">${PIC[b.pic]}${b.w}</div>`).join('')+`<div class="tile add" id="addphoto" onclick="addPhoto()"><b>＋</b>Add photo</div>`}
+function modal(h){$('sheet').innerHTML=h;$('modal').classList.add('show');setTimeout(()=>{const i=$('sheet').querySelector('input');if(i)i.focus()},50)}
+function closeModal(){$('modal').classList.remove('show')}
+$('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+function editPhoto(w){const b=A.bank.find(x=>x.w===w);
+ modal(`<h3>What do you call this?</h3><div class="center">${PIC[b.pic].replace('<svg','<svg style="width:110px;height:110px;border-radius:12px"')}</div><input id="nm" value="${b.w}"><div class="seg">${CATS.map(c=>`<button class="${b.cat===c?'on':''}" onclick="this.parentNode.querySelectorAll('button').forEach(x=>x.classList.remove('on'));this.classList.add('on');this.parentNode.dataset.c='${c}'">${c}</button>`).join('')}</div>
+ <button class="btn" onclick="saveEdit('${w}')">Save</button><button class="btn ghost" onclick="closeModal()">Cancel</button>`)}
+function saveEdit(w){const b=A.bank.find(x=>x.w===w);const v=$('nm').value.trim();const c=$('sheet').querySelector('.seg').dataset.c;if(v)b.w=v;if(c)b.cat=c;closeModal();done('photo');toast('✓ Saved · AI learned "'+b.w+'"');tab('photos')}
+function addPhoto(){const avail=NEW_PHOTOS.filter(p=>!A.bank.some(b=>b.pic===p.pic));
+ if(!avail.length){toast('All sample photos added');return}
+ modal(`<h3>Add from your camera roll</h3><p class="muted">Pick a photo, then name it in your own words.</p><div class="grid" style="margin:10px 0">${avail.map(p=>`<div class="tile pick" data-k="${p.pic}" onclick="document.querySelectorAll('#sheet .pick').forEach(x=>x.classList.remove('sel'));this.classList.add('sel');$('nm').focus()">${PIC[p.pic]}</div>`).join('')}</div>
+ <input id="nm" placeholder="Type its name (e.g. ${avail[0].w})"><button class="btn" onclick="saveNew()">Add to my words</button><button class="btn ghost" onclick="closeModal()">Cancel</button>`);
+ $('sheet').querySelector('.pick').classList.add('sel')}
+function saveNew(){const k=$('sheet').querySelector('.pick.sel').dataset.k;const p=NEW_PHOTOS.find(x=>x.pic===k);const v=$('nm').value.trim()||p.w;
+ A.bank.push({w:v,pic:k,cat:p.cat,ctx:p.ctx,found:0});closeModal();done('photo');toast('⭐ +1 word · "'+v+'"');tab('photos')}
+// practice
+function practice(){$('apptitle').textContent="Tonight's practice";$('appsub').textContent='5 minutes · words you reached for today';
+ const words=practiceWords();
+ $('appbody').innerHTML=(A.reached.length?'':`<div class="card muted">Text someone first. Words you reach for show up here. (Yesterday's words are below.)</div>`)+
+ words.map((b,i)=>`<div class="pw">${PIC[b.pic]}<div class="w">${b.w}</div><span class="st ${b.pdone?'done':''}">${b.pdone?'✓ Done':(A.reached.includes(b.w)?'Today':'Yesterday')}</span></div>`).join('')+
+ `<button class="btn" id="startprac" onclick="startGame()" ${words.every(b=>b.pdone)?'disabled':''}>${words.every(b=>b.pdone)?'✓ Practice done for today':'▶ Start practice'}</button>`;
+ cap('Practice from his own day',"The words Frank reached for today become a short game: see the picture, say it, then build the word.")}
+function practiceWords(){const r=A.reached.map(w=>A.bank.find(b=>b.w===w)).filter(Boolean);const y=['rink','lake'].map(w=>A.bank.find(b=>b.w===w)).filter(b=>b&&!r.includes(b));return [...r,...y].slice(0,4)}
+function startGame(){A.game={list:practiceWords().filter(b=>!b.pdone),i:0};gameRound()}
+function gameRound(){const g=A.game;const b=g.list[g.i];if(!b){practiceDone();return}
+ g.word=b.w.toLowerCase();g.pos=0;g.hint=0;
+ const letters=g.word.split('').map((c,i)=>({c,i})).sort(()=>Math.random()-.5);
+ $('apptitle').textContent=`Word ${g.i+1} of ${g.list.length}`;$('appsub').textContent='Say it out loud, then build it';
+ $('appbody').innerHTML=`<div class="card center">${PIC[b.pic].replace('<svg','<svg style="width:120px;height:120px;border-radius:12px"')}
+ <div class="slots" id="slots">${g.word.split('').map(()=>`<div class="slot"></div>`).join('')}</div>
+ <div class="tiles" id="ltiles">${letters.map((l,j)=>`<button class="lt" data-c="${l.c}" onclick="tapLetter(this)">${l.c.toUpperCase()}</button>`).join('')}</div>
+ <div style="display:flex;gap:6px;margin-top:10px"><button class="btn ghost" style="margin:0" onclick="say('${b.w}');toast('🔊 &quot;${b.w}&quot;')">🔊 Hear it</button><button class="btn ghost" style="margin:0" onclick="gameHint()">💡 Hint</button></div></div>`;
+ cap('Say it, then build it','Tap the letters in order, or type them. A wrong letter just wiggles. There is no failing.')}
+function tapLetter(el){const g=A.game;if(el.classList.contains('used'))return;
+ if(el.dataset.c===g.word[g.pos]){el.classList.add('used');const s=$('slots').children[g.pos];s.textContent=el.dataset.c.toUpperCase();g.pos++;click();
+  if(g.pos===g.word.length){const b=g.list[g.i];b.pdone=true;b.found++;toast('⭐ '+b.w);setTimeout(()=>{g.i++;gameRound()},800)}}
+ else{el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}}
+function gameKey(e){const g=A.game;if(!g||e.key.length!==1)return;const el=[...document.querySelectorAll('.lt:not(.used)')].find(x=>x.dataset.c===e.key.toLowerCase());if(el){e.preventDefault();tapLetter(el)}}
+function gameHint(){const g=A.game;const el=[...document.querySelectorAll('.lt:not(.used)')].find(x=>x.dataset.c===g.word[g.pos]);if(el){A.hintsUsed++;$('slots').children[g.pos].classList.add('hint');tapLetter(el)}}
+function practiceDone(){A.game=null;A.practiceDone=true;done('practice');
+ $('apptitle').textContent='Practice done ⭐';$('appsub').textContent='See you tomorrow, Frank';
+ $('appbody').innerHTML=`<div class="card center">${PIC.trophy.replace('<svg','<svg style="width:110px;height:110px;border-radius:14px"')}<h3>You practised ${practiceWords().length} words today</h3><p class="muted">3-day streak. Your progress has been updated.</p><button class="btn" onclick="tab('progress')">See my progress</button></div>`;
+ cap('Practice done','A 5-minute daily habit built from his own conversations. Progress updates right away.')}
+// progress
+function progress(){$('apptitle').textContent='Progress';$('appsub').textContent='Hints fade as you improve';
+ const found=A.foundToday.length+A.bank.filter(b=>b.pdone).length;
+ const wk4=Math.max(12,40-found*6-A.replies*3+A.hintsUsed*3);
+ const ms=[['Found 3 words on your own',found>=3],['Replied to Sarah 3 times',A.replies>=3],["Finished tonight's practice",A.practiceDone],['Replied without picture help',A.replies>A.foundToday.length&&A.replies>0]];
+ $('appbody').innerHTML=`<div class="stats"><div class="stat"><b>${found}</b><span>words found yourself</span></div><div class="stat"><b>${A.replies}</b><span>replies sent</span></div><div class="stat"><b>${A.hintsUsed}</b><span>extra hints used</span></div></div>
+ <div class="card"><h3>Picture help needed per week</h3><div class="bars"><div class="bar" style="height:90%"><em>9</em><span>Wk 1</span></div><div class="bar" style="height:72%"><em>7</em><span>Wk 2</span></div><div class="bar lo" style="height:52%"><em>5</em><span>Wk 3</span></div><div class="bar lo" id="wk4" style="height:${wk4}%"><em>${Math.round(wk4/10)}</em><span>This week</span></div></div><div style="height:18px"></div></div>
+ <div class="card"><h3>🏁 Milestones</h3>${ms.map(([t,ok])=>`<div class="ms">${t}<span>${ok?'✅':'⏳'}</span></div>`).join('')}</div><p class="muted">Weeks 1–3 are sample data. This week updates as you use the demo.</p>`;
+ cap('Built to help him improve, not depend','The goal is needing less help over time. Milestones and this week\'s bar update live as you use the demo.')}
+function slp(){$('apptitle').textContent='SLP weekly summary';$('appsub').textContent="What Frank's speech therapist sees";
+ const found=A.foundToday.length+A.bank.filter(b=>b.pdone).length;const top=[...A.reached,'rink','lake'].slice(0,4);
+ $('appbody').innerHTML=`<div class="lockline">🔒 Shared by Frank. Summary only: no messages, no photos.</div>
+ <div class="card"><h3>This week</h3><div class="ms">Practice days<span>5 of 7</span></div><div class="ms">Words found on his own<span>${found+18}</span></div><div class="ms">Picture help trend<span style="color:var(--teal);font-weight:800">↓ improving</span></div><div class="ms">Most-reached words<span>${top.join(', ')}</span></div></div>
+ <div class="card"><h3>Suggested focus</h3><p class="muted">Names of people and places come easily. Action words (won, bring) still need first-letter cues. Consider adding verbs to next week's practice.</p></div>
+ <button class="btn ghost" onclick="toast('Note sent to Frank: Great week! 👏')">Send Frank encouragement</button>`;
+ cap("The SLP stays in the loop","Only if Frank turns sharing on. The SLP sees trends and focus areas between visits, never his conversations.")}
+function settings(){$('apptitle').textContent='Settings';$('appsub').textContent='You are in control';const st=A.settings;
+ const sw=(k,t,s)=>`<div class="row"><div>${t}<small>${s}</small></div><button class="sw ${st[k]?'on':''}" id="sw-${k}" onclick="toggle('${k}')"></button></div>`;
+ $('appbody').innerHTML=`<div class="lockline">🔒 Runs on this phone. Photos, messages and voice never leave it, even offline.</div>
+ ${sw('share','Share progress with my SLP','Weekly summary only, never your messages')}
+ <div class="row" style="display:block"><div>How much help<small>Where hints start. They fade as you improve.</small></div><div class="seg">${[['letters','Picture + letter'],['pictures','Pictures first'],['nudge','Just a nudge']].map(([v,t])=>`<button class="${A.help===v?'on':''}" onclick="A.help='${v}';settings();toast('Help level: ${t}')">${t}</button>`).join('')}</div></div>
+ ${sw('lg','Large text','Bigger pictures, letters and keys')}
+ ${sw('audio','Audio first','Play the first sound when you tap a picture')}
+ ${sw('voicepics','Pictures in voice typing','Show pictures when you dictate')}
+ ${sw('taps','Tap sounds','Off by default for sound sensitivity')}
+ ${sw('lite','Lite mode for older phones','Smaller AI model, same picture help')}`;
+ cap('Accessible, private, his choice','Every switch here works: try Large text, then go back to Messages. Turning on SLP sharing adds the "SLP view" tab.')}
+function toggle(k){A.settings[k]=!A.settings[k];$('sw-'+k).classList.toggle('on');
+ if(k==='lg')$('screen').classList.toggle('lg',A.settings.lg);
+ if(k==='share'){document.querySelector('.tab[data-t="slp"]').classList.toggle('hide',!A.settings.share);if(A.settings.share){done('slp');toast('Sharing weekly summary with SLP')}else toast('Sharing off')}
+ if(k==='lite')toast(A.settings.lite?'Lite mode on: works on older phones':'Lite mode off');
+ if(k==='audio'&&A.settings.audio)say('Audio first is on')}
+
+//real photos from wikimedia commons, layered over the drawing so it still shows if a photo can't load
+//every picture is a real photo; svg wrapper keeps the app's sizing code working
+//each key can have more than one candidate photo so "refresh" can show a different match
+const PHOTO_SET={
+ trophy:['https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Gold_Trophy.jpg/330px-Gold_Trophy.jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/McCaw_Cup.jpg/330px-McCaw_Cup.jpg'],
+ kid:['https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/CooperXL7.jpg/330px-CooperXL7.jpg'],
+ rink:['https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/City_National_Arena_ice_rink.jpg/330px-City_National_Arena_ice_rink.jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Tsukisamu_Indoor_Skating_Rink_01.jpg/330px-Tsukisamu_Indoor_Skating_Rink_01.jpg'],
+ dog:['https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Golden_Retriever_Hund_Dog.JPG/330px-Golden_Retriever_Hund_Dog.JPG'],
+ coffee:['https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cup_of_coffee_(1).jpg/330px-Cup_of_coffee_(1).jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/A_small_cup_of_coffee.JPG/330px-A_small_cup_of_coffee.JPG'],
+ truck:['https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Chevrolet_1957_3100_Series_Pickup_Truck.jpg/330px-Chevrolet_1957_3100_Series_Pickup_Truck.jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Chevy_Pickup_1956.jpg/330px-Chevy_Pickup_1956.jpg'],
+ pizza:['https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Pizza_Margherita_stu_spivack.jpg/330px-Pizza_Margherita_stu_spivack.jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Pizza-napoletana.jpg/330px-Pizza-napoletana.jpg'],
+ lake:['https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/View_from_the_dock,_Muskoka_River_(21007916808).jpg/330px-View_from_the_dock,_Muskoka_River_(21007916808).jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Moraine_Lake_Shoreline_(8034061250).jpg/330px-Moraine_Lake_Shoreline_(8034061250).jpg'],
+ dock:['https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Dock_Chairs_(6136811391).jpg/330px-Dock_Chairs_(6136811391).jpg'],
+ puck:['https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Ice_hockey_puck_on_ice_20180112.jpg/330px-Ice_hockey_puck_on_ice_20180112.jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Ice_hockey_puck_-_2.jpg/330px-Ice_hockey_puck_-_2.jpg'],
+ fish:['https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Athabasca_Rainbow_Trout.jpg/330px-Athabasca_Rainbow_Trout.jpg','https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Rainbow_Trout_2530.jpg/330px-Rainbow_Trout_2530.jpg'],
+ house:['https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Ontario_Cottage.JPG/330px-Ontario_Cottage.JPG','https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Rideau_Cottage.jpg/330px-Rideau_Cottage.jpg'],
+ sarah:['https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Smiling_woman_with_a_phone_(Unsplash).jpg/330px-Smiling_woman_with_a_phone_(Unsplash).jpg'],
+};
+const PHOTO_IX={};
+function photoSvg(url){ return `<svg viewBox="0 0 30 30" style="background:#e9edf1"><image href="${url}" x="0" y="0" width="30" height="30" preserveAspectRatio="xMidYMid slice" onerror="this.remove()"/></svg>`; }
+for(const k in PHOTO_SET){ PHOTO_IX[k]=0; PIC[k]=photoSvg(PHOTO_SET[k][0]); }
+//refresh button: cycles each tile on screen to its next candidate photo
+function refreshTiles(){
+  const btn=$("refreshTiles");
+  btn.classList.remove("spin"); void btn.offsetWidth; btn.classList.add("spin");
+  let changed=false;
+  TILES.forEach(t=>{
+    const set=PHOTO_SET[t.key];
+    if(set && set.length>1){ PHOTO_IX[t.key]=(PHOTO_IX[t.key]+1)%set.length; PIC[t.key]=photoSvg(set[PHOTO_IX[t.key]]); changed=true; }
+  });
+  buildTiles();
+  cap("Not the right photo?", "Tap refresh any time to see other photos from his life that might match the word better.");
+  $("heard").textContent = changed ? "Showing different photos" : "No other photos for these words yet";
+}
+function done(){}
+let A;
+function go(v){
+ if(v==='app'&&!A.setup){v='onb';onb(0)}
+ document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));$('v-'+v).classList.add('on');
+ $('screen').classList.toggle('onhome',v==='home');
+ $('sw-msg').classList.toggle('on',v==='msg');$('sw-app').classList.toggle('on',v==='app'||v==='onb');
+ if(v==='msg'){$('msgbadge').style.display='none';if(phase==='typing')cap('Reply to '+S.name,"You're Frank. Type the grey text. On the last word you only get the first letter, so use the chat to guess it. Tap LM any time for pictures.")}
+ if(v==='app')tab('photos');
+ if(v==='home')cap('Home','Open Messages to reply, or open the LocalMotion app.')}
+
+$("refreshTiles").onclick = refreshTiles;
+$("closePanel").onclick = () => {
+  if(dictating){ endDictation(); return; }
+  $("panel").classList.remove("show");
+  if(phase === "hint"){ phase = "stuck"; stuckTimer = setTimeout(openPanel, 1200); } //pictures come back on their own
+  render();
+};
+$("sayit").onclick = listen;
+$("send").onclick = send;
+$("reset").onclick = () => reset();
+
+//laptop keyboard support: real keys light up the on-screen keys
+function flash(el, bad){
+  if(!el) return;
+  el.classList.add(bad ? "bad" : "pressed");
+  setTimeout(() => el.classList.remove("bad", "pressed"), 140);
+}
+function keyEl(name){
+  return Array.from(document.querySelectorAll(".key")).find(k => k.dataset.k === name);
+}
+function backspace(){
+  //can't delete past the stuck point once the hint flow has started
+  const floor = phase === "typing" ? 0 : STUCK_AT;
+  if(phase === "sent" || pos <= floor) { nope(); return; }
+  pos--;
+  while(pos > floor && /[^a-zA-Z ]/.test(TARGET[pos])) pos--;
+  if(phase === "done") phase = "unlocked";
+  render();
+}
+document.addEventListener("keydown", e => {
+  if(e.metaKey || e.ctrlKey || e.altKey) return; //leave cmd+r etc alone
+  if($("modal").classList.contains("show")) return;
+  if($("v-app").classList.contains("on")){ if(A.game) gameKey(e); return; }
+  if(!$("v-msg").classList.contains("on")) return;
+  if(e.key === "Enter"){ e.preventDefault(); flash(keyEl("send")); send(); return; }
+  if(e.key === "Backspace"){ e.preventDefault(); flash(keyEl("back")); backspace(); return; }
+  if(e.key === " "){ e.preventDefault(); const ok = press(" "); flash(keyEl("space"), ok === false); return; }
+  if(e.key.length === 1 && /[a-zA-Z]/.test(e.key)){
+    e.preventDefault();
+    const ok = press(e.key);
+    flash(keyEl(e.key.toLowerCase()), ok === false);
+  }
+});
+
+buildKeys(); A = fresh(); reset(true); go('msg');
+</script>
+</body>
+</html>
