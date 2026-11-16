@@ -11,8 +11,10 @@
     --ghost:#B7BCC6; --amber:#E9A23B; --muted:#5b6772; --mint:#E8F5F3; --line:#e5e9ee; --blue:#3B6EA5; --ink:#1d2733;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  body{margin:0;min-height:100vh;box-sizing:border-box;padding:64px 0;display:flex;align-items:center;justify-content:center;gap:48px;
+  html,body{height:100%;margin:0;overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;background:#EEF3F8;color:var(--navy)}
+  .stage{display:flex;align-items:center;justify-content:center;gap:48px;transform-origin:center center}
   .side{max-width:280px}
   .side h1{font-size:22px;margin:0 0 4px}
   .side .tag{color:var(--teal);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
@@ -228,6 +230,7 @@
 </head>
 <body>
 
+<div class="stage">
 <div class="side">
   <h1>Keyboard prototype</h1>
   <ol>
@@ -299,6 +302,7 @@
     </div>
   </div>
 </div></div>
+</div>
 
 <script>
 //conversations: restart moves to the next one
@@ -882,6 +886,18 @@ document.addEventListener("keydown", e => {
 });
 
 buildKeys(); A = fresh(); reset(true); go('msg');
+
+//scale the whole stage to fit the viewport with margin on every side, so the page never scrolls
+function fitStage(){
+  const stage = document.querySelector('.stage');
+  const margin = 48;
+  stage.style.transform = 'scale(1)';
+  const w = stage.offsetWidth, h = stage.offsetHeight;
+  const scale = Math.min(1, (window.innerWidth - margin * 2) / w, (window.innerHeight - margin * 2) / h);
+  stage.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', fitStage);
+fitStage();
 </script>
 </body>
 </html>
