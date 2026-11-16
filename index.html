@@ -14,7 +14,9 @@
   html,body{height:100%;margin:0;overflow:hidden}
   body{display:flex;align-items:center;justify-content:center;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;background:#EEF3F8;color:var(--navy)}
-  .stage{display:flex;align-items:center;justify-content:center;gap:48px;transform-origin:center center}
+  .stage{display:flex;align-items:center;justify-content:center;gap:48px}
+  .phone-slot{display:flex;align-items:center;justify-content:center}
+  .phone{transform-origin:center center}
   .side{max-width:280px}
   .side h1{font-size:22px;margin:0 0 4px}
   .side .tag{color:var(--teal);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
@@ -247,7 +249,7 @@
   </div>
 </div>
 
-<div class="phone"><div class="screen" id="screen">
+<div class="phone-slot"><div class="phone"><div class="screen" id="screen">
   <div class="island"></div>
   <div class="status"><span>9:41</span><span>5G ▮</span></div>
   <div class="homebar"></div>
@@ -302,6 +304,7 @@
     </div>
   </div>
 </div></div>
+</div>
 </div>
 
 <script>
@@ -887,14 +890,21 @@ document.addEventListener("keydown", e => {
 
 buildKeys(); A = fresh(); reset(true); go('msg');
 
-//scale the whole stage to fit the viewport with margin on every side, so the page never scrolls
+//only the phone shrinks to fit the viewport, so the page never scrolls; the side text stays full size
 function fitStage(){
-  const stage = document.querySelector('.stage');
-  const margin = 48;
-  stage.style.transform = 'scale(1)';
-  const w = stage.offsetWidth, h = stage.offsetHeight;
-  const scale = Math.min(1, (window.innerWidth - margin * 2) / w, (window.innerHeight - margin * 2) / h);
-  stage.style.transform = `scale(${scale})`;
+  const phone = document.querySelector('.phone');
+  const slot = document.querySelector('.phone-slot');
+  const side = document.querySelector('.side');
+  const margin = 48, gap = 48;
+  phone.style.transform = 'scale(1)';
+  slot.style.width = ''; slot.style.height = '';
+  const pw = phone.offsetWidth, ph = phone.offsetHeight;
+  const availH = window.innerHeight - margin * 2;
+  const availW = window.innerWidth - margin * 2 - side.offsetWidth - gap;
+  const scale = Math.min(1, availH / ph, availW / pw);
+  phone.style.transform = `scale(${scale})`;
+  slot.style.width = (pw * scale) + 'px';
+  slot.style.height = (ph * scale) + 'px';
 }
 window.addEventListener('resize', fitStage);
 fitStage();
