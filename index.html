@@ -773,15 +773,28 @@ function progress(){$('apptitle').textContent='Progress';$('appsub').textContent
  const ms=[['Found 3 words on your own',found>=3],['Replied to Sarah 3 times',A.replies>=3],["Finished tonight's practice",A.practiceDone],['Replied without picture help',A.replies>A.foundToday.length&&A.replies>0]];
  $('appbody').innerHTML=`<div class="stats"><div class="stat"><b>${found}</b><span>words found yourself</span></div><div class="stat"><b>${A.replies}</b><span>replies sent</span></div><div class="stat"><b>${A.hintsUsed}</b><span>extra hints used</span></div></div>
  <div class="card"><h3>Picture help needed per week</h3><div class="bars"><div class="bar" style="height:90%"><em>9</em><span>Wk 1</span></div><div class="bar" style="height:72%"><em>7</em><span>Wk 2</span></div><div class="bar lo" style="height:52%"><em>5</em><span>Wk 3</span></div><div class="bar lo" id="wk4" style="height:${wk4}%"><em>${Math.round(wk4/10)}</em><span>This week</span></div></div><div style="height:18px"></div></div>
- <div class="card"><h3>🏁 Milestones</h3>${ms.map(([t,ok])=>`<div class="ms">${t}<span>${ok?'✅':'⏳'}</span></div>`).join('')}</div><p class="muted">Weeks 1–3 are sample data. This week updates as you use the demo.</p>`;
+ <div class="card"><h3>🏁 Milestones</h3>${ms.map(([t,ok])=>`<div class="ms">${t}<span>${ok?'✅':'⏳'}</span></div>`).join('')}</div>`;
  cap('Built to help him improve, not depend','The goal is needing less help over time. Milestones and this week\'s bar update live as you use the demo.')}
 function slp(){$('apptitle').textContent='SLP weekly summary';$('appsub').textContent="What Frank's speech therapist sees";
  const found=A.foundToday.length+A.bank.filter(b=>b.pdone).length;const top=[...A.reached,'rink','lake'].slice(0,4);
  $('appbody').innerHTML=`<div class="lockline">🔒 Shared by Frank. Summary only: no messages, no photos.</div>
  <div class="card"><h3>This week</h3><div class="ms">Practice days<span>5 of 7</span></div><div class="ms">Words found on his own<span>${found+18}</span></div><div class="ms">Picture help trend<span style="color:var(--teal);font-weight:800">↓ improving</span></div><div class="ms">Most-reached words<span>${top.join(', ')}</span></div></div>
  <div class="card"><h3>Suggested focus</h3><p class="muted">Names of people and places come easily. Action words (won, bring) still need first-letter cues. Consider adding verbs to next week's practice.</p></div>
+ <button class="btn" onclick="exportSLP()">⬇ Export data for SLP</button>
  <button class="btn ghost" onclick="toast('Note sent to Frank: Great week! 👏')">Send Frank encouragement</button>`;
  cap("The SLP stays in the loop","Only if Frank turns sharing on. The SLP sees trends and focus areas between visits, never his conversations.")}
+function exportSLP(){
+ const found=A.foundToday.length+A.bank.filter(b=>b.pdone).length;const top=[...A.reached,'rink','lake'].slice(0,4);
+ const lines=['LocalMotion - SLP weekly summary','Date: '+new Date().toLocaleDateString(),'',
+  'Practice days: 5 of 7','Words found on his own: '+(found+18),'Picture help trend: improving',
+  'Most-reached words: '+top.join(', '),'',
+  "Suggested focus: Names of people and places come easily. Action words (won, bring) still need first-letter cues. Consider adding verbs to next week's practice."];
+ const blob=new Blob([lines.join('\n')],{type:'text/plain'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download='localmotion-slp-summary.txt';
+ document.body.appendChild(a);a.click();a.remove();
+ URL.revokeObjectURL(url);
+ toast('⬇ Exported summary for SLP')}
 function settings(){$('apptitle').textContent='Settings';$('appsub').textContent='You are in control';const st=A.settings;
  const sw=(k,t,s)=>`<div class="row"><div>${t}<small>${s}</small></div><button class="sw ${st[k]?'on':''}" id="sw-${k}" onclick="toggle('${k}')"></button></div>`;
  $('appbody').innerHTML=`<div class="lockline">🔒 Runs on this phone. Photos, messages and voice never leave it, even offline.</div>
