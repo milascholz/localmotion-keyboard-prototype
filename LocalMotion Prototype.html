@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LocalMotion Keyboard · Prototype</title>
+<title>KeyCall Keyboard · Prototype</title>
 <style>
   :root{
     --navy:#1E2A44; --teal:#1F9E89; --orange:#F2A33A; --red:#C8443A;
@@ -132,7 +132,7 @@
   @keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
   @keyframes sh{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
   @keyframes bl{50%{opacity:0}}
-  /*from the team's LocalMotion app*/
+  /*from the team's KeyCall app*/
 .toast{position:absolute;left:50%;top:86px;transform:translateX(-50%);background:var(--teal);color:#fff;font-weight:800;padding:8px 16px;border-radius:20px;font-size:13.5px;display:none;z-index:20;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
 .toast.show{display:block;animation:up .25s}
 @keyframes up{from{transform:translate(-50%,10px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
@@ -245,7 +245,7 @@
   <button id="reset">Restart with a new chat</button>
   <div class="switcher">
     <button class="sw-app on" id="sw-msg" onclick="go('msg')"><span class="sw-ic" style="background:linear-gradient(#5BF675,#0CBD2A)"><svg width="30" height="30" viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.6 6.2-.2 1.3-.9 2.6-1.9 3.5 2 0 3.8-.7 5.1-1.8 1 .2 2.1.3 3.2.3 5.5 0 10-3.6 10-8.2S17.5 3 12 3z"/></svg></span>iMessage</button>
-    <button class="sw-app" id="sw-app" onclick="go('app')"><span class="sw-ic" style="background:#fff">🖼️</span>LocalMotion app</button>
+    <button class="sw-app" id="sw-app" onclick="go('app')"><span class="sw-ic" style="background:#fff">🖼️</span>KeyCall app</button>
   </div>
 </div>
 
@@ -260,7 +260,7 @@
     <div class="hclock">9:41</div><div class="hdate">Sunday, November 15</div>
     <div class="apps">
       <button class="appicon" onclick="go('msg')"><div style="background:linear-gradient(#5BF675,#0CBD2A)"><svg width="38" height="38" viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.6 6.2-.2 1.3-.9 2.6-1.9 3.5 2 0 3.8-.7 5.1-1.8 1 .2 2.1.3 3.2.3 5.5 0 10-3.6 10-8.2S17.5 3 12 3z"/></svg></div>Messages<span class="badge" id="msgbadge">1</span></button>
-      <button class="appicon" onclick="go('app')"><div class="lmicon">LM</div>LocalMotion</button>
+      <button class="appicon" onclick="go('app')"><div class="lmicon">KC</div>KeyCall</button>
     </div>
   </div></div>
 
@@ -448,11 +448,11 @@ function finishWord(){
   pos = TARGET.length;
   phase = "done";
   $("heard").textContent = "✓ Nice. You found it.";
-  //counts as practice in the LocalMotion app
+  //counts as practice in the KeyCall app
   const b = A.bank.find(x => x.w.toLowerCase() === STUCK_WORD.toLowerCase());
   if(b){ b.found++; if(!A.reached.includes(b.w)) A.reached.push(b.w); }
   A.foundToday.push(STUCK_WORD);
-  cap("He found the word himself", "That counts as practice: \"" + STUCK_WORD + "\" goes into tonight's review in the LocalMotion app. Tap send.");
+  cap("He found the word himself", "That counts as practice: \"" + STUCK_WORD + "\" goes into tonight's review in the KeyCall app. Tap send.");
   render();
 }
 
@@ -568,7 +568,7 @@ function send(){
   addMsg({t:"out", text:TARGET});
   clearTimeout(stuckTimer);
   A.replies++;
-  cap("Back in the conversation", "A real answer instead of a thumbs-up. Open the LocalMotion app to see tonight's practice, or restart for a new chat.");
+  cap("Back in the conversation", "A real answer instead of a thumbs-up. Open the KeyCall app to see tonight's practice, or restart for a new chat.");
   phase = "sent";
   pos = 0;
   $("typed").textContent = ""; $("ghost").textContent = "";
@@ -615,7 +615,7 @@ function buildKeys(){
   });
   const last = document.createElement("div"); last.className = "krow";
   const n = document.createElement("div"); n.className = "key dark"; n.textContent = "123";
-  const mic = document.createElement("div"); mic.className = "key dark mic"; mic.textContent = "🖼️"; mic.title = "LocalMotion pictures"; mic.onclick = openPanel;
+  const mic = document.createElement("div"); mic.className = "key dark mic"; mic.textContent = "🖼️"; mic.title = "KeyCall pictures"; mic.onclick = openPanel;
   const sp = document.createElement("div"); sp.className = "key space"; sp.textContent = "space"; sp.dataset.k = "space"; sp.onclick = () => { if(press(" ") === false) flash(sp, true); };
   const rt = document.createElement("div"); rt.className = "key dark ret"; rt.textContent = "return"; rt.dataset.k = "send"; rt.onclick = send;
   last.append(n, mic, sp, rt);
@@ -785,13 +785,13 @@ function slp(){$('apptitle').textContent='SLP weekly summary';$('appsub').textCo
  cap("The SLP stays in the loop","Only if Frank turns sharing on. The SLP sees trends and focus areas between visits, never his conversations.")}
 function exportSLP(){
  const found=A.foundToday.length+A.bank.filter(b=>b.pdone).length;const top=[...A.reached,'rink','lake'].slice(0,4);
- const lines=['LocalMotion - SLP weekly summary','Date: '+new Date().toLocaleDateString(),'',
+ const lines=['KeyCall - SLP weekly summary','Date: '+new Date().toLocaleDateString(),'',
   'Practice days: 5 of 7','Words found on his own: '+(found+18),'Picture help trend: improving',
   'Most-reached words: '+top.join(', '),'',
   "Suggested focus: Names of people and places come easily. Action words (won, bring) still need first-letter cues. Consider adding verbs to next week's practice."];
  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
  const url=URL.createObjectURL(blob);
- const a=document.createElement('a');a.href=url;a.download='localmotion-slp-summary.txt';
+ const a=document.createElement('a');a.href=url;a.download='keycall-slp-summary.txt';
  document.body.appendChild(a);a.click();a.remove();
  URL.revokeObjectURL(url);
  toast('⬇ Exported summary for SLP')}
@@ -855,7 +855,7 @@ function go(v){
  $('sw-msg').classList.toggle('on',v==='msg');$('sw-app').classList.toggle('on',v==='app'||v==='onb');
  if(v==='msg'){$('msgbadge').style.display='none';if(phase==='typing')cap('Reply to '+S.name,"You're Frank. Type the grey text. On the last word you only get the first letter, so use the chat to guess it. Tap LM any time for pictures.")}
  if(v==='app')tab('photos');
- if(v==='home')cap('Home','Open Messages to reply, or open the LocalMotion app.')}
+ if(v==='home')cap('Home','Open Messages to reply, or open the KeyCall app.')}
 
 $("refreshTiles").onclick = refreshTiles;
 $("closePanel").onclick = () => {
